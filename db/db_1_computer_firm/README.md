@@ -1,5 +1,7 @@
 ## 1. Computer firm
 
+![schema_computer_firm](schema_computer_firm.png)
+
 ### 1.1 Product
 | maker | model | type    |
 |-------|-------|---------|
