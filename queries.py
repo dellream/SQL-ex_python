@@ -36,8 +36,24 @@ class ComputerFirmTasks(SessionCreater):
     Класс для решения задач по первой БД (компьютерная фирма)
     """
 
+    def show_pc_table(self):
+        # Запрашиваем все записи из таблицы PC
+        pcs = self.session.query(PC).all()
+
+        # Используем инспектор SQLAlchemy для получения информации о структуре таблицы
+        table_columns = inspect(self.session.bind).get_columns('pc')  # 'pc' - имя таблицы
+
+        # Преобразуем данные в формат, подходящий для tabulate
+        headers = [column['name'] for column in table_columns]
+        table_data = [(pc.__dict__[column] for column in headers) for pc in pcs]
+        print(tabulate(table_data, headers, tablefmt="pretty"))
+
     def task_1(self):
-        ...
+        # Фильтруем ПК по стоимости менее 500 долларов и выбираем необходимые столбцы
+        pcs = self.session.query(PC.model_id, PC.speed, PC.hd).filter(PC.price < 500.0).all()
+        table_data = [(pc.model_id, pc.speed, pc.hd) for pc in pcs]
+        headers = ['model', 'speed', 'hd']
+        print(f"Task #1:\n{tabulate(table_data, headers, tablefmt='pretty')}")
 
 
 class RecyclingFirmTasks(SessionCreater):
