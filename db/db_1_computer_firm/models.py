@@ -1,9 +1,8 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Enum, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
 
-from db.config import DB_PASSWORD, DB_USER, DB_HOST, DB_PORT, DB_NAME_COMPUTER_FIRM
+from db.database import engine
 
-engine = create_engine(f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME_COMPUTER_FIRM}')
 Base = declarative_base()
 
 

@@ -1,9 +1,8 @@
-from sqlalchemy.orm import sessionmaker
-from models import Product, PC, Laptop, Printer, engine
+from db.database import get_session
+from db.db_1_computer_firm.models import Product, PC, Laptop, Printer, engine
 
-# Создаем сессию
-Session = sessionmaker(bind=engine)
-session = Session()
+# Получаем сессию
+session = get_session()
 
 # Очищаем таблицы перед вставкой данных
 session.query(Product).delete()
