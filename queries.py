@@ -1,7 +1,7 @@
 from sqlalchemy import inspect
 from tabulate import tabulate
 
-from db.database import get_session
+from db.database import get_session, exec_query
 from db.db_1_computer_firm.models import Product, PC, Laptop, Printer
 
 
@@ -51,9 +51,28 @@ class ComputerFirmTasks(SessionCreater):
     def task_1(self):
         # Фильтруем ПК по стоимости менее 500 долларов и выбираем необходимые столбцы
         pcs = self.session.query(PC.model_id, PC.speed, PC.hd).filter(PC.price < 500.0).all()
+
         table_data = [(pc.model_id, pc.speed, pc.hd) for pc in pcs]
         headers = ['model', 'speed', 'hd']
-        print(f"Task #1:\n{tabulate(table_data, headers, tablefmt='pretty')}")
+        print("Task #1 (SQL-Alchemy):")
+        print(tabulate(table_data, headers, tablefmt='pretty'))
+
+    def task_1_postgre(self):
+        query = """
+        SELECT model_id, speed, hd
+        FROM pc
+        WHERE price < 500.0
+        ORDER BY model_id, speed
+        """
+
+        result = exec_query(query)
+
+        if result:
+            headers = ['model', 'speed', 'hd']
+            print("Task #1 (PostgreSQL):")
+            print(tabulate(result, headers, tablefmt='pretty'))
+        else:
+            print("No results found")
 
 
 class RecyclingFirmTasks(SessionCreater):
@@ -65,3 +84,4 @@ if __name__ == '__main__':
     with ComputerFirmTasks() as comp_firm_task:
         # Выполняем задачи
         comp_firm_task.task_1()
+        comp_firm_task.task_1_postgre()
