@@ -1,4 +1,4 @@
-from sqlalchemy import inspect
+from sqlalchemy import inspect, distinct, select
 from tabulate import tabulate
 
 from db.database import get_session, exec_query
@@ -50,12 +50,15 @@ class ComputerFirmTasks(SessionCreater):
 
     def task_1(self):
         # Фильтруем ПК по стоимости менее 500 долларов и выбираем необходимые столбцы
-        pcs = self.session.query(PC.model_id, PC.speed, PC.hd).filter(PC.price < 500.0).all()
+        query = self.session.query(
+            PC.model_id,
+            PC.speed,
+            PC.hd
+        ).filter(PC.price < 500.0).all()
 
-        table_data = [(pc.model_id, pc.speed, pc.hd) for pc in pcs]
         headers = ['model', 'speed', 'hd']
         print("Task #1 (SQL-Alchemy):")
-        print(tabulate(table_data, headers, tablefmt='pretty'))
+        print(tabulate(query, headers, tablefmt='pretty'))
 
     def task_1_postgre(self):
         query = """
@@ -74,6 +77,51 @@ class ComputerFirmTasks(SessionCreater):
         else:
             print("No results found")
 
+    def task_2(self):
+        """Найдите производителей принтеров. Вывести: maker"""
+        query = self.session.execute(
+            select(distinct(Product.maker))
+            .filter_by(type='Printer')
+        ).all()
+
+        headers = ['maker']
+        print("Task #2 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+    def task_2_postgre(self):
+        query = """
+        SELECT DISTINCT maker
+        FROM product
+        WHERE type = 'Printer'
+        """
+
+        result = exec_query(query)
+        if result:
+            headers = ['maker']
+            print("Task #2 (PostgreSQL):")
+            print(tabulate(result, headers, tablefmt='pretty'))
+        else:
+            print("No results found")
+
+    def task_3(self):
+        """
+        Найдите номер модели, объем памяти и размеры экранов ПК-блокнотов,
+        цена которых превышает 1000 дол.
+        """
+        query = self.session.execute(
+            select(
+                Laptop.model_id,
+                Laptop.ram,
+                Laptop.screen
+            )
+            .filter(Laptop.price > 1000)
+            .order_by(Laptop.model_id)
+        ).all()
+
+        headers = ['model', 'ram', 'screen']
+        print("Task #2 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
 
 class RecyclingFirmTasks(SessionCreater):
     pass
@@ -84,4 +132,3 @@ if __name__ == '__main__':
     with ComputerFirmTasks() as comp_firm_task:
         # Выполняем задачи
         comp_firm_task.task_1()
-        comp_firm_task.task_1_postgre()
