@@ -497,75 +497,27 @@ class ComputerFirmTasks(SessionCreater):
         Перечислите номера моделей любых типов,
         имеющих самую высокую цену по всей имеющейся в базе данных продукции.
         """
-        # max_price_cte = (
-        #     union(
-        #         select(
-        #             PC.model_id,
-        #             PC.price
-        #         )
-        #         .filter(PC.price == select(func.max(PC.price)).scalar_subquery()),
-        #
-        #         select(
-        #             Laptop.model_id,
-        #             Laptop.price
-        #         )
-        #         .filter(Laptop.price == select(func.max(Laptop.price)).scalar_subquery()),
-        #
-        #         select(
-        #             Printer.model_id,
-        #             Printer.price
-        #         )
-        #         .filter(Printer.price == select(func.max(Printer.price)).scalar_subquery())
-        #     )
-        # ).cte()
-        # print(max_price_cte)
-        # query = self.session.execute(
-        #     select(max_price_cte.model_id)
-        #     .join_from(max_price_cte)
-        #     .filter(max_price_cte.price == select(func.max(max_price_cte.price)).scalar_subquery())
-        # ).all()
 
-        # Создаем CTE для каждой выборки
-        pc_max_price_cte = (
-            select(PC.model_id, PC.price)
-            .filter(PC.price == select(func.max(PC.price)).scalar_subquery())
-        ).cte()
+        max_price = cte(
+            union(
+                select(PC.model_id, PC.price)
+                .filter(PC.price == select(func.max(PC.price)).scalar_subquery()),
 
-        laptop_max_price_cte = (
-            select(Laptop.model_id, Laptop.price)
-            .filter(Laptop.price == select(func.max(Laptop.price)).scalar_subquery())
-        ).cte()
+                select(Laptop.model_id, Laptop.price)
+                .filter(Laptop.price == select(func.max(Laptop.price)).scalar_subquery()),
 
-        printer_max_price_cte = (
-            select(Printer.model_id, Printer.price)
-            .filter(Printer.price == select(func.max(Printer.price)).scalar_subquery())
-        ).cte()
-
-        model_and_price_cte_table = (
-            union_all(
-                select(
-                    pc_max_price_cte.c.model_id,
-                    pc_max_price_cte.c.price
-                ),
-                select(
-                    laptop_max_price_cte.c.model_id,
-                    laptop_max_price_cte.c.price
-                ),
-                select(
-                    printer_max_price_cte.c.model_id,
-                    printer_max_price_cte.c.price
-                )
+                select(Printer.model_id, Printer.price)
+                .filter(Printer.price == select(func.max(Printer.price)).scalar_subquery())
             )
         )
 
-        # Объединяем результаты CTE в один запрос
         query = self.session.execute(
-            select(model_and_price_cte_table.c.model_id)
-            .filter(model_and_price_cte_table.c.price ==
-                    select(func.max(model_and_price_cte_table.c.price)).scalar_subquery())
-        ).all()
+            select(max_price.c.model_id)
+            .filter(max_price.c.price ==
+                    select(func.max(max_price.c.price)).scalar_subquery())
+        )
 
-        headers = ['model', 'price']
+        headers = ['model']
         print("Task #24 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
