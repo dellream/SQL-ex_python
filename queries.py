@@ -368,12 +368,13 @@ class ComputerFirmTasks(SessionCreater):
         Найдите производителей самых дешевых цветных принтеров.
         Вывести: maker, price
         """
-        subquery_printer_min_price = \
+        subquery_printer_min_price = (
             select(
                 func.min(Printer.price)
-            ). \
-                filter(Printer.color == 'y'). \
-                scalar_subquery()
+            )
+            .filter(Printer.color == 'y')
+            .scalar_subquery()
+        )
 
         query = self.session.execute(
             select(
@@ -527,6 +528,21 @@ class ComputerFirmTasks(SessionCreater):
         наименьшим объемом RAM и с самым быстрым процессором среди всех ПК,
         имеющих наименьший объем RAM.
         Вывести: Maker
+
+        with pc_spec AS (
+        SELECT max(speed) max_speed, ram
+        FROM pc
+        WHERE ram IN (select min(ram) min_ram from pc)
+        GROUP BY ram)
+
+        SELECT DISTINCT maker
+        FROM product
+        WHERE type = 'Printer'
+            AND maker IN (SELECT maker
+                            FROM product
+                            JOIN pc ON pc.model = product.model
+                            JOIN pc_spec ON pc_spec.max_speed = pc.speed
+                                AND pc_spec.ram = pc.ram)
         """
         min_ram_sub = (
             select(func.min(PC.ram)).scalar_subquery()
@@ -558,9 +574,89 @@ class ComputerFirmTasks(SessionCreater):
         print("Task #25 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+    def task_26(self):
+        """
+        Найдите среднюю цену ПК и ПК-блокнотов, выпущенных производителем A.
+        Вывести: одна общая средняя цена.
+
+        WITH tmp AS (
+        SELECT model, price
+        FROM PC
+        UNION ALL
+        SELECT model, price
+        FROM Laptop)
+
+        SELECT avg(price) as AVG_price
+        FROM tmp JOIN product
+        ON product.model = tmp.model
+        WHERE maker = 'A'
+        """
+        tmp = cte(
+            union_all(
+                select(PC.model_id, PC.price),
+                select(Laptop.model_id, Laptop.price)
+            )
+        )
+
+        query = self.session.execute(
+            select(
+                func.avg(tmp.c.price)
+            )
+            .join(Product, Product.model == tmp.c.model_id)
+            .filter(Product.maker == 'A')
+        )
+
+        headers = ['AVG_price']
+        print("Task #26 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+    def task_27(self):
+        """
+        Найдите средний размер диска ПК каждого из тех производителей,
+        которые выпускают и принтеры.
+        Вывести: maker, средний размер HD.
+        """
+        subquery = (
+            select(Product.maker)
+            .filter(Product.type == 'Printer')
+        )
+
+        query = self.session.execute(
+            select(
+                distinct(Product.maker),
+                func.avg(PC.hd)
+            )
+            .join(PC, PC.model_id == Product.model)
+            .filter(Product.maker.in_(subquery))
+            .group_by(Product.maker)
+        )
+
+        headers = ['maker', 'AVG_hd']
+        print("Task #27 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+    def task_28(self):
+        """
+        Используя таблицу Product, определить количество производителей,
+        выпускающих по одной модели.
+        """
+        tmp_cte = cte(
+            select(Product.maker)
+            .group_by(Product.maker)
+            .having(func.count(Product.model) == 1)
+        )
+
+        query = self.session.execute(
+            select(func.count(tmp_cte.c.maker))
+        )
+
+        headers = ['Qty']
+        print("Task #28 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
 
 if __name__ == '__main__':
     # Сессия будет автоматически закрыта после выхода из блока with
     with ComputerFirmTasks() as comp_firm_task:
         # Выполняем задачи
-        comp_firm_task.task_25()
+        comp_firm_task.task_18()
