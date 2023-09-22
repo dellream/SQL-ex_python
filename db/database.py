@@ -2,9 +2,15 @@ import psycopg2
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from db.config import DB_PASSWORD, DB_USER, DB_HOST, DB_PORT, DB_NAME_COMPUTER_FIRM
+from db.config import (
+    DB_PASSWORD,
+    DB_USER,
+    DB_HOST,
+    DB_PORT,
+    DB_NAME
+)
 
-engine = create_engine(f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME_COMPUTER_FIRM}')
+engine = create_engine(f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
 
 # Создаем сессию
 Session = sessionmaker(bind=engine)
@@ -22,7 +28,7 @@ def exec_query(query):
     """
     # Подключаемся к PostgreSQL
     connection = psycopg2.connect(
-        dbname=DB_NAME_COMPUTER_FIRM,
+        dbname=DB_NAME,
         user=DB_USER,
         password=DB_PASSWORD,
         host=DB_HOST,
