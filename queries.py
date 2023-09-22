@@ -11,7 +11,8 @@ from sqlalchemy import (
     union_all,
     all_,
     cte,
-    case
+    case,
+    literal_column
 )
 from sqlalchemy.orm import aliased
 from tabulate import tabulate
@@ -664,6 +665,12 @@ class RecyclingFirmTasks(SessionCreater):
 
     def task_29(self):
         """
+        В предположении, что приход и расход денег на каждом пункте приема
+        фиксируется не чаще одного раза в день [т.е. первичный ключ (пункт, дата)],
+        написать запрос с выходными данными (пункт, дата, приход, расход).
+
+        Использовать таблицы Income_o и Outcome_o.
+
         SELECT
             CASE
                 WHEN i.point IS NOT NULL THEN i.point
@@ -692,10 +699,73 @@ class RecyclingFirmTasks(SessionCreater):
             .join(Income_o,
                   (Income_o.point == Outcome_o.point) & (Income_o.date == Outcome_o.date),
                   full=True)
-            )
+        )
 
         headers = ['POINT', 'DATE', 'inc', 'out']
         print("Task #29 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+    def task_30(self):
+        """
+        В предположении, что приход и расход денег на каждом
+        пункте приема фиксируется произвольное число раз (первичным ключом
+        в таблицах является столбец code), требуется получить таблицу,
+        в которой каждому пункту за каждую дату выполнения операций будет
+        соответствовать одна строка.
+
+        SELECT
+          point,
+          date,
+          sum(sum_out) as sum_out,
+          sum(sum_inc) as sum_inc
+        FROM (SELECT point,
+                     date,
+                     sum(inc) as sum_inc,
+                     NULL as sum_out
+              FROM income
+              GROUP BY point, date
+              UNION
+              SELECT point,
+                     date,
+                     NULL sum_inc,
+                     sum(out) as sum_out
+              FROM outcome
+              GROUP BY point, date) t
+        GROUP BY point, date
+        """
+        stmt = union(
+            select(
+                Income.point,
+                Income.date,
+                literal_column("NULL").label('sum_out'),
+                func.sum(Income.inc).label('sum_inc')
+            )
+            .group_by(Income.point, Income.date),
+
+            select(
+                Outcome.point,
+                Outcome.date,
+                func.sum(Outcome.out).label('sum_out'),
+                literal_column("NULL").label('sum_inc')
+            )
+            .group_by(Outcome.point, Outcome.date)
+        )
+
+        subq = stmt.alias('subq')
+
+        query = self.session.execute(
+            select(
+                subq.c.point,
+                subq.c.date,
+                func.sum(subq.c.sum_out).label('sum_out'),
+                func.sum(subq.c.sum_inc).label('sum_inc')
+            )
+            .group_by(subq.c.point, subq.c.date)
+            .order_by(subq.c.date)
+        )
+
+        headers = ['POINT', 'DATE', 'sum_out', 'sum_inc']
+        print("Task #30 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
 
@@ -705,4 +775,4 @@ if __name__ == '__main__':
     # comp_firm_task.task_18()
     with RecyclingFirmTasks() as recycling_firm_task:
         # Выполняем задачи
-        recycling_firm_task.task_29()
+        recycling_firm_task.task_30()
