@@ -521,9 +521,46 @@ class ComputerFirmTasks(SessionCreater):
         print("Task #24 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+    def task_25(self):
+        """
+        Найдите производителей принтеров, которые производят ПК с
+        наименьшим объемом RAM и с самым быстрым процессором среди всех ПК,
+        имеющих наименьший объем RAM.
+        Вывести: Maker
+        """
+        min_ram_sub = (
+            select(func.min(PC.ram)).scalar_subquery()
+        )
+
+        pc_spec = cte(
+            select(
+                func.max(PC.speed).label('max_speed'),
+                PC.ram
+            )
+            .filter(PC.ram.in_(min_ram_sub))
+            .group_by(PC.ram)
+        )
+
+        maker_table = (
+            select(Product.maker)
+            .join(PC, PC.model_id == Product.model)
+            .join(pc_spec, (pc_spec.c.max_speed == PC.speed) & (pc_spec.c.ram == PC.ram))
+        )
+
+        query = self.session.execute(
+            select(
+                distinct(Product.maker)
+            )
+            .filter((Product.type == 'Printer') & Product.maker.in_(maker_table))
+        )
+
+        headers = ['maker']
+        print("Task #25 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
 
 if __name__ == '__main__':
     # Сессия будет автоматически закрыта после выхода из блока with
     with ComputerFirmTasks() as comp_firm_task:
         # Выполняем задачи
-        comp_firm_task.task_24()
+        comp_firm_task.task_25()
