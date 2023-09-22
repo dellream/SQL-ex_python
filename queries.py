@@ -10,13 +10,15 @@ from sqlalchemy import (
     intersect,
     union_all,
     all_,
-    cte
+    cte,
+    case
 )
 from sqlalchemy.orm import aliased
 from tabulate import tabulate
 
 from db.database import get_session, exec_query
 from db.db_1_computer_firm.models import Product, PC, Laptop, Printer
+from db.db_2_recycling_firm.models import Income, Outcome, Income_o, Outcome_o
 
 
 class SessionCreater:
@@ -655,8 +657,52 @@ class ComputerFirmTasks(SessionCreater):
         print(tabulate(query, headers, tablefmt='pretty'))
 
 
+class RecyclingFirmTasks(SessionCreater):
+    """
+    Класс для решения задач по второй БД (Фирма вторсырья)
+    """
+
+    def task_29(self):
+        """
+        SELECT
+            CASE
+                WHEN i.point IS NOT NULL THEN i.point
+                ELSE o.point
+            END,
+            CASE
+                WHEN i.date IS NOT NULL THEN i.date
+                ELSE o.date
+            END,
+            inc,
+            out
+        FROM Income_o i
+        FULL OUTER JOIN Outcome_o o
+            ON i.point = o.point
+        AND i.date = o.date;
+        """
+        query = self.session.execute(
+            select(
+                case((Income_o.point.isnot(None), Income_o.point),
+                     else_=Outcome_o.point),
+                case((Income_o.date.isnot(None), Income_o.date),
+                     else_=Outcome_o.date),
+                Income_o.inc,
+                Outcome_o.out
+            )
+            .join(Income_o,
+                  (Income_o.point == Outcome_o.point) & (Income_o.date == Outcome_o.date),
+                  full=True)
+            )
+
+        headers = ['POINT', 'DATE', 'inc', 'out']
+        print("Task #29 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+
 if __name__ == '__main__':
     # Сессия будет автоматически закрыта после выхода из блока with
-    with ComputerFirmTasks() as comp_firm_task:
+    # with ComputerFirmTasks() as comp_firm_task:
+    # comp_firm_task.task_18()
+    with RecyclingFirmTasks() as recycling_firm_task:
         # Выполняем задачи
-        comp_firm_task.task_18()
+        recycling_firm_task.task_29()
