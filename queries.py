@@ -769,25 +769,24 @@ class RecyclingFirmTasks(SessionCreater):
         print("Task #30 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+
 class ShipsTasks(SessionCreater):
     def task_31(self):
         """
-        Укажите корабли, потопленные в сражениях в Северной Атлантике (North Atlantic). Вывод: ship.
-
-        SELECT ship
-        FROM Outcomes
-        WHERE battle LIKE '%Atlantic'
-          AND result = 'sunk'
+        SELECT class, country
+        FROM Classes
+        WHERE bore >= 16
         """
         query = self.session.execute(
             select(
-                Outcomes.ship
+                Classes.class_name,
+                Classes.country
             )
-            .filter(and_(Outcomes.battle.like('%Atlantic'), Outcomes.result == 'sunk'))
+            .filter(Classes.bore >= 16)
         )
 
-        headers = ['ships_name']
-        print("Task #31 (SQL-Alchemy):")
+        headers = ['Class_name', 'Country']
+        print("Task #30 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
     def task_32(self):
@@ -838,6 +837,60 @@ class ShipsTasks(SessionCreater):
         print("Task #32 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+    def task_33(self):
+        """
+        Укажите корабли, потопленные в сражениях в Северной Атлантике (North Atlantic). Вывод: ship.
+
+        SELECT ship
+        FROM Outcomes
+        WHERE battle LIKE '%Atlantic'
+          AND result = 'sunk'
+        """
+        query = self.session.execute(
+            select(
+                Outcomes.ship
+            )
+            .filter(and_(Outcomes.battle.like('%Atlantic'), Outcomes.result == 'sunk'))
+        )
+
+        headers = ['ships_name']
+        print("Task #33 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+    def task_34(self):
+        """
+        По Вашингтонскому международному договору от начала 1922 г. запрещалось
+        строить линейные корабли водоизмещением более 35 тыс. тонн. Укажите корабли,
+        нарушившие этот договор (учитывать только корабли c известным годом спуска на воду).
+        Вывести названия кораблей.
+
+        SELECT
+          s.name
+        FROM classes c JOIN ships s
+          ON c.class = s.class
+        WHERE s.launched >= 1922
+          AND c.type = 'bb'
+          AND c.displacement > 35000
+        """
+        query = self.session.execute(
+            select(
+                Ships.name
+            )
+            .join(Classes, Classes.class_name == Ships.class_name)
+            .filter(
+                and_(
+                    Ships.launched >= 1922,
+                    Classes.type == 'bb',
+                    Classes.displacement > 35000
+                )
+            )
+        )
+
+        headers = ['ships_name']
+        print("Task #34 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+
 if __name__ == '__main__':
     # Сессия будет автоматически закрыта после выхода из блока with
     # with ComputerFirmTasks() as comp_firm_task:
@@ -849,4 +902,4 @@ if __name__ == '__main__':
 
     with ShipsTasks() as ships_task:
         # Выполняем задачи
-        ships_task.task_32()
+        ships_task.task_34()
