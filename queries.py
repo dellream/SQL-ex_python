@@ -12,7 +12,7 @@ from sqlalchemy import (
     all_,
     cte,
     case,
-    literal_column
+    literal_column, Float
 )
 from sqlalchemy.orm import aliased
 from tabulate import tabulate
@@ -20,6 +20,7 @@ from tabulate import tabulate
 from db.database import get_session, exec_query
 from db.db_1_computer_firm.models import Product, PC, Laptop, Printer
 from db.db_2_recycling_firm.models import Income, Outcome, Income_o, Outcome_o
+from db.db_3_ships.models import Outcomes, Ships, Classes
 
 
 class SessionCreater:
@@ -768,11 +769,84 @@ class RecyclingFirmTasks(SessionCreater):
         print("Task #30 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+class ShipsTasks(SessionCreater):
+    def task_31(self):
+        """
+        Укажите корабли, потопленные в сражениях в Северной Атлантике (North Atlantic). Вывод: ship.
+
+        SELECT ship
+        FROM Outcomes
+        WHERE battle LIKE '%Atlantic'
+          AND result = 'sunk'
+        """
+        query = self.session.execute(
+            select(
+                Outcomes.ship
+            )
+            .filter(and_(Outcomes.battle.like('%Atlantic'), Outcomes.result == 'sunk'))
+        )
+
+        headers = ['ships_name']
+        print("Task #31 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+    def task_32(self):
+        """
+        Одной из характеристик корабля является половина куба калибра его главных орудий (mw).
+        С точностью до 2 десятичных знаков определите среднее значение mw для кораблей каждой
+        страны, у которой есть корабли в базе данных.
+
+        SELECT
+            country,
+            CAST(AVG(POWER(bore, 3) / 2) AS numeric(6, 2)) AS weight
+        FROM Classes
+         JOIN (SELECT class
+               FROM Ships
+               UNION ALL
+              (SELECT ship AS class
+               FROM Outcomes
+               EXCEPT
+               SELECT
+               name AS class
+               FROM
+               Ships)) AS t --Исключаем корабли, которые присутствуют и в таблице Outcomes, и в таблице Ships
+          ON Classes.class = t.class
+        GROUP BY country
+        """
+        # Исключаем корабли, которые присутствуют и в таблице Outcomes, и в таблице Ships
+        except_subquery = except_(
+            select(Outcomes.ship.label('class_name')),
+            select(Ships.name.label('class_name'))
+        )
+
+        # Объединяем подзапросы для join
+        union_subqueries = union_all(select(Ships.class_name), except_subquery).alias()
+
+        query = self.session.execute(
+            select(
+                Classes.country,
+                func.cast(func.avg(func.power(Classes.bore, 3) / 2), Float(6, 2)).label('weight')
+            )
+            .join(
+                union_subqueries,
+                Classes.class_name == union_subqueries.c.class_name
+            )
+            .group_by(Classes.country)
+        )
+
+        headers = ['Country', 'Weight']
+        print("Task #32 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
 
 if __name__ == '__main__':
     # Сессия будет автоматически закрыта после выхода из блока with
     # with ComputerFirmTasks() as comp_firm_task:
     # comp_firm_task.task_18()
-    with RecyclingFirmTasks() as recycling_firm_task:
+
+    # with RecyclingFirmTasks() as recycling_firm_task:
+    #     # Выполняем задачи
+    #     recycling_firm_task.task_30()
+
+    with ShipsTasks() as ships_task:
         # Выполняем задачи
-        recycling_firm_task.task_30()
+        ships_task.task_32()
