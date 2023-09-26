@@ -12,7 +12,10 @@ from sqlalchemy import (
     all_,
     cte,
     case,
-    literal_column, Float
+    literal_column,
+    Float,
+    String,
+    Integer
 )
 from sqlalchemy.orm import aliased
 from tabulate import tabulate
@@ -658,6 +661,34 @@ class ComputerFirmTasks(SessionCreater):
         print("Task #28 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+    def task_35(self):
+        """
+        В таблице Product найти модели, которые состоят только из цифр
+        или только из латинских букв (A-Z, без учета регистра).
+        Вывод: номер модели, тип модели.
+
+        SELECT model, type
+        FROM Product
+        WHERE model NOT LIKE '%[^0-9]%'
+          OR model NOT LIKE '%[^A-Z]%';
+        """
+        query = self.session.execute(
+            select(
+                Product.model,
+                Product.type
+            )
+            .filter(
+                or_(
+                    func.cast(Product.model, String).notlike('%[^0-9]%'),
+                    func.cast(Product.model, String).notlike('%[^A-Z]%')
+                )
+            )
+        )
+
+        headers = ['Model', 'Type']
+        print("Task #35 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
 
 class RecyclingFirmTasks(SessionCreater):
     """
@@ -893,13 +924,14 @@ class ShipsTasks(SessionCreater):
 
 if __name__ == '__main__':
     # Сессия будет автоматически закрыта после выхода из блока with
-    # with ComputerFirmTasks() as comp_firm_task:
-    # comp_firm_task.task_18()
+
+    with ComputerFirmTasks() as comp_firm_task:
+        comp_firm_task.task_35()
 
     # with RecyclingFirmTasks() as recycling_firm_task:
     #     # Выполняем задачи
     #     recycling_firm_task.task_30()
 
-    with ShipsTasks() as ships_task:
-        # Выполняем задачи
-        ships_task.task_34()
+    # with ShipsTasks() as ships_task:
+    #     # Выполняем задачи
+    #     ships_task.task_34()
