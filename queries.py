@@ -15,7 +15,6 @@ from sqlalchemy import (
     literal_column,
     Float,
     String,
-    Integer
 )
 from sqlalchemy.orm import aliased
 from tabulate import tabulate
@@ -921,17 +920,82 @@ class ShipsTasks(SessionCreater):
         print("Task #34 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+    def task_36(self):
+        """
+        Перечислите названия головных кораблей,
+        имеющихся в базе данных (учесть корабли в Outcomes).
+
+        SELECT name
+        FROM Ships
+        WHERE name = class
+        UNION
+        SELECT ship
+        FROM Outcomes, Classes
+        WHERE class = ship
+        """
+
+        query = self.session.execute(
+            union(
+                select(Ships.name).filter(Ships.name == Ships.class_name),
+                select(Outcomes.ship).join(Classes, Classes.class_name == Outcomes.ship)
+            )
+        )
+
+        headers = ['ships_name']
+        print("Task #36 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+    def task_37(self):
+        """
+        Найдите классы, в которые входит только один
+        корабль из базы данных (учесть также корабли в Outcomes).
+
+        SELECT class
+        FROM (
+          SELECT name, class
+          FROM Ships
+          UNION
+          SELECT class AS name, class
+          FROM Classes JOIN Outcomes
+            ON Classes.class = Outcomes.ship
+        ) tmp
+        GROUP BY class
+        HAVING count(tmp.name) = 1
+        """
+
+        from_subquery = (
+            union(
+                select(Ships.name, Ships.class_name),
+                select(
+                    Classes.class_name.label('name'),
+                    Classes.class_name
+                ).join(Outcomes, Classes.class_name == Outcomes.ship)
+            )
+        ).alias()
+
+        query = self.session.execute(
+            select(
+                from_subquery.c.class_name
+            )
+            .group_by(from_subquery.c.class_name)
+            .having(func.count(from_subquery.c.name) == 1)
+        )
+
+        headers = ['class_name']
+        print("Task #37 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
 
 if __name__ == '__main__':
     # Сессия будет автоматически закрыта после выхода из блока with
 
-    with ComputerFirmTasks() as comp_firm_task:
-        comp_firm_task.task_35()
+    # with ComputerFirmTasks() as comp_firm_task:
+    #     comp_firm_task.task_35()
 
     # with RecyclingFirmTasks() as recycling_firm_task:
     #     # Выполняем задачи
     #     recycling_firm_task.task_30()
 
-    # with ShipsTasks() as ships_task:
-    #     # Выполняем задачи
-    #     ships_task.task_34()
+    with ShipsTasks() as ships_task:
+        # Выполняем задачи
+        ships_task.task_37()
