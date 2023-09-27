@@ -985,6 +985,30 @@ class ShipsTasks(SessionCreater):
         print("Task #37 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+    def task_38(self):
+        """
+        Найдите страны, имевшие когда-либо классы обычных боевых кораблей ('bb')
+        и имевшие когда-либо классы крейсеров ('bc').
+
+        SELECT country
+        FROM Classes
+        WHERE type = 'bb'
+        INTERSECT
+        SELECT country
+        FROM Classes
+        WHERE type = 'bc'
+        """
+        query = self.session.execute(
+            intersect(
+                select(Classes.country).filter(Classes.type == 'bb'),
+                select(Classes.country).filter(Classes.type == 'bc')
+            )
+        )
+
+        headers = ['country']
+        print("Task #38 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
 
 if __name__ == '__main__':
     # Сессия будет автоматически закрыта после выхода из блока with
@@ -998,4 +1022,4 @@ if __name__ == '__main__':
 
     with ShipsTasks() as ships_task:
         # Выполняем задачи
-        ships_task.task_37()
+        ships_task.task_38()
