@@ -17,6 +17,7 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.orm import aliased
+from sqlalchemy.sql.expression import case
 from tabulate import tabulate
 
 from db.database import get_session, exec_query
@@ -1009,6 +1010,108 @@ class ShipsTasks(SessionCreater):
         print("Task #38 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+    def task_52(self):
+        """
+        Определить названия всех кораблей из таблицы Ships,
+        которые могут быть линейным японским кораблем, имеющим
+        число главных орудий не менее девяти, калибр орудий менее 19 дюймов
+        и водоизмещение не более 65 тыс. тонн
+
+        SELECT name
+        FROM ships JOIN classes
+          ON classes.class = ships.class
+        WHERE
+            COALESCE(country, 'Japan') = 'Japan'
+            AND COALESCE(numGuns, 9) >= 9
+            AND COALESCE(displacement, 65000) <= 65000
+            AND COALESCE(TYPE, 'bb') = 'bb'
+            AND COALESCE(bore, 18) < 19
+        """
+        query = self.session.execute(
+            select(
+                Ships.name
+            )
+            .join(Classes, Classes.class_name == Ships.class_name)
+            .filter(
+                func.coalesce(Classes.country, 'Japan') == 'Japan',
+                func.coalesce(Classes.numGuns, '9') >= '9',
+                func.coalesce(Classes.displacement, '65000') <= '65000',
+                func.coalesce(Classes.type, 'bb') == 'bb',
+                func.coalesce(Classes.bore, '18') < '19'
+            )
+        )
+
+        headers = ['ships_name']
+        print("Task #52 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
+    def task_56(self):
+        """
+        Для каждого класса определите число кораблей этого класса, потопленных в сражениях.
+        Вывести: класс и число потопленных кораблей.
+
+        with tmp as (
+         -- Таблица результатов боев головных кораблей из outcomes и неголовных из Classes
+         SELECT c.class, o.result, o.ship
+         FROM Classes c LEFT JOIN Outcomes o
+          ON c.class = o.ship
+          UNION
+         -- Таблица результатов боев не головных кораблей в т.ч из outcomes
+         SELECT s.class, o.result, s.name
+         FROM Outcomes o JOIN Ships s
+          ON o.ship = s.name
+        )
+
+        SELECT
+          class,
+          sum (
+               CASE
+                WHEN result = 'sunk' THEN 1
+                ELSE 0
+               END
+              ) as sunks_qty
+        FROM tmp
+        GROUP BY class
+        """
+        union_1 = (
+            select(
+                Classes.class_name,
+                Outcomes.result,
+                Outcomes.ship.label('name')
+            )
+            .join(Outcomes, Outcomes.ship == Classes.class_name, isouter=True)
+        )
+
+        union_2 = (
+            select(
+                Ships.class_name,
+                Outcomes.result,
+                Ships.name
+            )
+            .join(Outcomes, Ships.name == Outcomes.ship)
+        )
+
+        tmp_cte = union(union_1, union_2).cte('tmp_cte')
+
+        final_query = (
+            select(
+                tmp_cte.c.class_name,
+                func.sum(
+                    case(
+                        (tmp_cte.c.result == 'sunk', 1), else_=0
+                    )
+                ).label('sunks_qty')
+            )
+            .group_by(tmp_cte.c.class_name)
+        )
+
+        query = self.session.execute(final_query)
+
+        print(union_1)
+        headers = ['class_name', 'sunks_qty']
+        print("Task #56 (SQL-Alchemy):")
+        print(tabulate(query, headers, tablefmt='pretty'))
+
 
 if __name__ == '__main__':
     # Сессия будет автоматически закрыта после выхода из блока with
@@ -1022,4 +1125,4 @@ if __name__ == '__main__':
 
     with ShipsTasks() as ships_task:
         # Выполняем задачи
-        ships_task.task_38()
+        ships_task.task_56()
