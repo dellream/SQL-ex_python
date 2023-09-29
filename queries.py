@@ -689,6 +689,83 @@ class ComputerFirmTasks(SessionCreater):
         print("Task #35 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+    def task_75(self):
+        """
+        Для тех производителей, у которых есть продукты с известной ценой хотя бы в одной
+        из таблиц Laptop, PC, Printer найти максимальные цены на каждый из типов продукции.
+        Вывод: maker, максимальная цена на ноутбуки, максимальная цена на ПК, максимальная цена на принтеры.
+        Для отсутствующих продуктов/цен использовать NULL.
+
+        SELECT
+          maker,
+          [laptop],
+          [pc],
+          [printer]
+        FROM (SELECT
+                maker,
+                TYPE,
+                MAX (price)(price) price
+               FROM Product p JOIN (SELECT model, price
+                                    FROM PC
+                                    UNION
+                                    SELECT model, price
+                                    FROM Laptop
+                                    UNION
+                                    SELECT model, price
+                                    FROM Printer) as W
+                ON p.model = w.model
+                GROUP BY maker, TYPE
+                HAVING MAX (price) IS NOT NULL
+        ) A PIVOT (
+                    MAX (price) FOR TYPE IN ([laptop], [pc], [printer])
+                  ) pvt;
+        """
+
+    def task_82(self):
+        """
+        В наборе записей из таблицы PC, отсортированном по столбцу code (по возрастанию)
+        найти среднее значение цены для каждой шестерки подряд идущих ПК.
+        Вывод: значение code, которое является первым в наборе из шести строк, среднее значение цены в наборе.
+
+        WITH CTE(code, price, number) AS (
+            SELECT
+                PC.code,
+                PC.price,
+                number = ROW_NUMBER() OVER (ORDER BY PC.code)
+            FROM PC
+        )
+        SELECT
+            CTE.code,
+            AVG(C.price)
+        FROM CTE JOIN CTE C
+        ON (C.number - CTE.number) < 6 AND (C.number - CTE.number) >= 0
+        GROUP BY CTE.number, CTE.code
+        HAVING COUNT(CTE.number) = 6;
+        """
+
+    def task_89(self):
+        """
+        Найти производителей, у которых больше всего моделей в таблице Product,
+        а также тех, у которых меньше всего моделей.
+        Вывод: maker, число моделей
+
+        WITH a AS (
+            SELECT
+                maker,
+                count(*) AS cnt,
+                max(count(model)) over (PARTITION by 1) AS maxcol,
+                min(count(model)) over (PARTITION by 1) AS mincol
+            FROM Product
+            GROUP BY maker
+        )
+        SELECT
+            maker,
+            cnt
+        FROM a
+        WHERE
+            cnt = maxcol
+            OR cnt = mincol;
+        """
 
 class RecyclingFirmTasks(SessionCreater):
     """
@@ -1107,7 +1184,6 @@ class ShipsTasks(SessionCreater):
 
         query = self.session.execute(final_query)
 
-        print(union_1)
         headers = ['class_name', 'sunks_qty']
         print("Task #56 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
