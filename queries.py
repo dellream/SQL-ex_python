@@ -788,6 +788,41 @@ class ComputerFirmTasks(SessionCreater):
             AND p2 > 3;
         """
 
+    def task_97(self):
+        """
+        Отобрать из таблицы Laptop те строки, для которых выполняется следующее условие:
+        значения из столбцов speed, ram, price, screen возможно расположить таким образом,
+        что каждое последующее значение будет превосходить предыдущее в 2 раза или более.
+        Замечание: все известные характеристики ноутбуков больше нуля.
+        Вывод: code, speed, ram, price, screen.
+
+        SELECT
+            code,
+            speed,
+            ram,
+            price,
+            screen
+        FROM laptop
+        WHERE EXISTS (
+            SELECT 1 as x
+            FROM (
+                SELECT
+                    v,
+                    rank() over(ORDER BY v) rn
+                FROM (
+                    SELECT
+                        cast(speed AS float) sp,
+                        cast(ram AS float) rm,
+                        cast(price AS float) pr,
+                        cast(screen AS float) sc
+                ) l unpivot(v FOR c IN (sp, rm, pr, sc)) u
+                ) l pivot(max(v) FOR rn IN ([1], [2], [3], [4])) p
+            WHERE
+                [1] * 2 <= [2]
+                AND [2] * 2 <= [3]
+                AND [3] * 2 <= [4]
+        );
+        """
 
 
 class RecyclingFirmTasks(SessionCreater):
