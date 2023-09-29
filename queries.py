@@ -767,6 +767,29 @@ class ComputerFirmTasks(SessionCreater):
             OR cnt = mincol;
         """
 
+    def task_90(self):
+        """
+        Вывести все строки из таблицы Product, кроме трех строк с наименьшими
+        номерами моделей и трех строк с наибольшими номерами моделей.
+
+        SELECT
+            t1.maker,
+            t1.model,
+            t1.type
+        FROM (
+            SELECT
+                row_number() over (ORDER BY model) p1,
+                row_number() over (ORDER BY model DESC) p2,
+                *
+            FROM product
+        ) t1
+        WHERE
+            p1 > 3
+            AND p2 > 3;
+        """
+
+
+
 class RecyclingFirmTasks(SessionCreater):
     """
     Класс для решения задач по второй БД (Фирма вторсырья)
