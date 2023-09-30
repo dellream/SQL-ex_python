@@ -718,6 +718,26 @@ class ComputerFirmTasks(SessionCreater):
             AND pcj.type = product.type;
         """
 
+    def task_65(self):
+        """
+        Пронумеровать уникальные пары {maker, type} из Product, упорядочив их следующим образом:
+        - имя производителя (maker) по возрастанию;
+        - тип продукта (type) в порядке PC, Laptop, Printer.
+        Если некий производитель выпускает несколько типов продукции, то выводить его имя только в первой строке;
+        остальные строки для ЭТОГО производителя должны содержать пустую строку символов ('').
+
+        SELECT
+            row_number() over(ORDER BY maker, len(TYPE)) AS rowNumber,
+            CASE
+                WHEN row_number() over(PARTITION by maker ORDER BY len(TYPE)) = 1
+                THEN maker
+                ELSE ''
+            END AS maker,
+            TYPE
+        FROM Product
+        GROUP BY maker, TYPE;
+        """
+
     def task_75(self):
         """
         Для тех производителей, у которых есть продукты с известной ценой хотя бы в одной
