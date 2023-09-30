@@ -689,6 +689,35 @@ class ComputerFirmTasks(SessionCreater):
         print("Task #35 (SQL-Alchemy):")
         print(tabulate(query, headers, tablefmt='pretty'))
 
+    def task_58(self):
+        """
+        Для каждого типа продукции и каждого производителя из таблицы Product c
+        точностью до двух десятичных знаков найти процентное отношение числа моделей
+        данного типа данного производителя к общему числу моделей этого производителя.
+
+        WITH pcj AS (
+            SELECT *
+            FROM (
+                SELECT DISTINCT [maker]
+                FROM product
+            ) AS tp CROSS JOIN (
+                SELECT DISTINCT [type]
+                FROM Product) AS tt
+        )
+
+        SELECT
+            DISTINCT pcj.maker,
+            pcj.type,
+            cast(
+                count(model) over(PARTITION by pcj.[maker], pcj.[type]) * 100.0 /
+                count(model) over(PARTITION by pcj.[maker]) AS numeric(10, 2)
+            ) AS val
+        FROM
+            pcj
+            LEFT JOIN product ON pcj.maker = product.maker
+            AND pcj.type = product.type;
+        """
+
     def task_75(self):
         """
         Для тех производителей, у которых есть продукты с известной ценой хотя бы в одной
